@@ -1,0 +1,47 @@
+plugins:
+  - rubocop-rspec
+
+require:
+  - ./lib/paper_trail/bulk_writes/rubocop
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  Exclude:
+    - gemfiles/**/*
+    - vendor/**/*
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+    - '*.gemspec'
+
+Metrics/AbcSize:
+  Exclude:
+    - spec/support/database.rb
+
+Metrics/MethodLength:
+  Exclude:
+    - spec/support/database.rb
+
+RSpec/ExampleLength:
+  Max: 12
+
+RSpec/MultipleExpectations:
+  Max: 3
+
+PaperTrail/BulkWrites/NoBulkWriteOnAuditedModel:
+  Models:
+    - Widget
+    - Ticket
+  Exclude:
+    - spec/paper_trail/**/*

@@ -1,0 +1,7 @@
+PaperTrail/BulkWrites/NoBulkWriteOnAuditedModel:
+  Description: >-
+    Bulk writes skip callbacks, so PaperTrail records nothing. Use the audited_* helpers
+    on models that have has_paper_trail.
+  Enabled: true
+  VersionAdded: '0.1.0'
+  Models: []

@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - run: bundle exec rubocop
+
+  spec:
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.gemfile }} / ${{ matrix.db }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.4']
+        gemfile:
+          - rails_7_1_paper_trail_15
+          - rails_7_2_paper_trail_16
+          - rails_8_0_paper_trail_17
+        db: [sqlite, postgres]
+        include:
+          - ruby: '3.2'
+            gemfile: rails_7_1_paper_trail_15
+            db: sqlite
+          - ruby: '3.3'
+            gemfile: rails_7_2_paper_trail_16
+            db: postgres
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
+      DB: ${{ matrix.db }}
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: paper_trail_bulk_writes_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rspec
