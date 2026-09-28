@@ -1,4 +1,4 @@
-# paper_trail-bulk_writes
+# Paper Trail Bulk Writes
 
 PaperTrail versions for `update_all`, `delete_all` and `insert_all`.
 
