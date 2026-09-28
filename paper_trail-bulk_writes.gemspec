@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = 'paper_trail-bulk_writes'
   spec.version = PaperTrail::BulkWrites::VERSION
   spec.authors = ['Sam Robinson']
-  spec.email = ['sam.robinson@florence.co.uk']
+  spec.email = ['samrobinsonwork@outlook.com']
 
   spec.summary = 'PaperTrail versions for update_all, delete_all and insert_all.'
   spec.description = <<~DESC
