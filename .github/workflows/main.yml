@@ -31,7 +31,7 @@ jobs:
           - rails_7_1_paper_trail_15
           - rails_7_2_paper_trail_16
           - rails_8_0_paper_trail_17
-        db: [sqlite, postgres, mysql]
+        db: [sqlite, postgres, mysql, mariadb]
         include:
           - ruby: '3.2'
             gemfile: rails_7_1_paper_trail_15
@@ -42,7 +42,7 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
       DB: ${{ matrix.db }}
-      DATABASE_URL: ${{ matrix.db == 'sqlite' && 'sqlite3::memory:' || matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test' || 'mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test' }}
+      DATABASE_URL: ${{ matrix.db == 'sqlite' && 'sqlite3::memory:' || matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test' || matrix.db == 'mariadb' && 'mysql2://root:root@127.0.0.1:3307/paper_trail_bulk_writes_test' || 'mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test' }}
     services:
       postgres:
         image: postgres:16
@@ -61,6 +61,17 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: paper_trail_bulk_writes_test
         ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      mariadb:
+        image: mariadb:10.5
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: paper_trail_bulk_writes_test
+        ports: ['3307:3306']
         options: >-
           --health-cmd "mysqladmin ping -h localhost"
           --health-interval 10s

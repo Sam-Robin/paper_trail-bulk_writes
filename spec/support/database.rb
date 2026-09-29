@@ -11,6 +11,10 @@ module Database
       ActiveRecord::Base.establish_connection(
         ENV['DATABASE_URL'] || 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test'
       )
+    when 'mariadb'
+      ActiveRecord::Base.establish_connection(
+        ENV['DATABASE_URL'] || 'mysql2://root:root@127.0.0.1:3307/paper_trail_bulk_writes_test'
+      )
     when 'mysql'
       ActiveRecord::Base.establish_connection(
         ENV['DATABASE_URL'] || 'mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test'

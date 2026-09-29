@@ -122,6 +122,7 @@ end
 
 ## Limitations
 
+- **PostgreSQL**, **SQLite 3.35+**, **MariaDB 10.5+**, and **MySQL 5.7+**. MariaDB, Postgres, and SQLite use `INSERT ... RETURNING`; MySQL uses an auto-increment ID derivation fallback.
 - **`object` is not written**, only `object_changes`. `version.reify` won't work on bulk-written versions; use `where_object_changes` and friends.
 - **`has_paper_trail on:`** is not consulted — every bulk write is versioned.
 - Requires Ruby 3.2+, ActiveRecord 7.1+, PaperTrail 15+.
