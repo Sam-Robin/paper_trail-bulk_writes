@@ -2,6 +2,8 @@
 
 PaperTrail versions for `update_all`, `delete_all` and `insert_all`.
 
+Working on PostgreSQL (full support), SQLite 3.35+ and MySQL 5-7+, MariaDB 10.5+.
+
 ## The problem
 
 [PaperTrail](https://github.com/paper-trail-gem/paper_trail) records versions from ActiveRecord callbacks. Bulk writes skip callbacks, so they leave no audit trail:
@@ -120,7 +122,6 @@ end
 
 ## Limitations
 
-- **Postgres and SQLite (3.35+) only.** `audited_insert_all` relies on `INSERT ... RETURNING`. MySQL is untested.
 - **`object` is not written**, only `object_changes`. `version.reify` won't work on bulk-written versions; use `where_object_changes` and friends.
 - **`has_paper_trail on:`** is not consulted — every bulk write is versioned.
 - Requires Ruby 3.2+, ActiveRecord 7.1+, PaperTrail 15+.
