@@ -50,11 +50,15 @@ module PaperTrail
         return supplied if supplied.none?(&:nil?)
         raise ArgumentError, 'rows must all supply an id or none of them' unless supplied.all?(&:nil?)
 
-        conn = model.connection
-        first = conn.select_value('SELECT LAST_INSERT_ID()').to_i
-        step = conn.select_value('SELECT @@auto_increment_increment').to_i
-        Array.new(batch.size) { |i| first + (i * step) }
+        derive_ids(batch.size)
       end
+
+      def derive_ids(count)
+        first = select_integer('SELECT LAST_INSERT_ID()')
+        step = select_integer('SELECT @@auto_increment_increment')
+        Array.new(count) { |i| first + (i * step) }
+      end
+
 
       def fetch_rows(ids)
         relation = model.unscoped.where(id: ids).select('id', *tracked)
