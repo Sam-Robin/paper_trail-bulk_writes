@@ -59,9 +59,6 @@ module PaperTrail
         Array.new(count) { |i| first + (i * step) }
       end
 
-      def select_integer(sql)
-        model.connection.select_value(sql).to_i
-      end
 
       def fetch_rows(ids)
         relation = model.unscoped.where(id: ids).select('id', *tracked)
