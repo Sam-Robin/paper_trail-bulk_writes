@@ -42,7 +42,7 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
       DB: ${{ matrix.db }}
-      DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test' || matrix.db == 'mysql' && 'mysql2://root:root@localhost:3306/paper_trail_bulk_writes_test' || '' }}
+      DATABASE_URL: ${{ matrix.db == 'sqlite' && ':memory:' || matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test' || 'mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test' }}
     services:
       postgres:
         image: postgres:16
