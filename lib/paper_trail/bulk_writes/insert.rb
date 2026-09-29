@@ -27,7 +27,9 @@ module PaperTrail
       end
 
       def write(batch)
-        inserted = model.insert_all!(batch, returning: ['id', *tracked]).to_a
+        options = {}
+        options[:returning] = ['id', *tracked] if model.connection.adapter_name == 'PostgreSQL'
+        inserted = model.insert_all!(batch, **options).to_a
         changed = changed_columns(batch)
         adapter.insert(inserted.map { |attributes| version_row(attributes, changed) })
         inserted.pluck('id')
