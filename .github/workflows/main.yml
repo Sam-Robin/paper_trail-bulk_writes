@@ -42,6 +42,7 @@ jobs:
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.gemfile }}.gemfile
       DB: ${{ matrix.db }}
+      DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test' || matrix.db == 'mysql' && 'mysql2://root:root@localhost:3306/paper_trail_bulk_writes_test' || '' }}
     services:
       postgres:
         image: postgres:16
@@ -71,5 +72,4 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - run: echo "DATABASE_URL=$(if [ '$DB' = 'postgres' ]; then echo 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test'; elif [ '$DB' = 'mysql' ]; then echo 'mysql2://root:root@localhost:3306/paper_trail_bulk_writes_test'; fi)" >> $GITHUB_ENV
       - run: bundle exec rspec
