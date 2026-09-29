@@ -2,91 +2,83 @@
 
 module PaperTrail
   module BulkWrites
-    class Adapter
-      def initialize(model, whodunnit:)
+    class Insert
+      include Versioned
+
+      def initialize(model:, rows:, whodunnit: nil, batch_size: nil)
         @model = model
+        @rows = rows
         @whodunnit = whodunnit
+        @batch_size = batch_size || default_batch_size
       end
 
-      def tracked(candidates)
-        tracked = candidates.map(&:to_s) - ignored
-        only.any? ? tracked & only : tracked
-      end
+      def call
+        return [] if rows.empty?
 
-      def meta
-        @meta ||= versioned? ? model.paper_trail_options[:meta].to_h : {}
-      end
-
-      def meta_for(record)
-        meta.transform_values do |value|
-          next value.call(record) if value.respond_to?(:call)
-          next record.send(value) if value.is_a?(Symbol)
-
-          value
-        end
-      end
-
-      def build_row(id:, event:, object_changes:, extra:, subtype: nil)
-        row = {
-          item_type: model.base_class.name,
-          item_id: id,
-          event: event,
-          whodunnit: whodunnit,
-          object_changes: serialize(object_changes),
-          created_at: Time.current
-        }
-        row[:item_subtype] = subtype || default_subtype if subtype_column?
-        row.merge(extra)
-      end
-
-      def insert(rows)
-        return unless versioned? && rows.any?
-
-        version_class.insert_all(rows)
+        model.transaction { rows.each_slice(batch_size).flat_map { |batch| write(batch) } }
       end
 
       private
 
-      attr_reader :model, :whodunnit
+      attr_reader :model, :rows, :whodunnit, :batch_size
 
-      def versioned?
-        model.respond_to?(:paper_trail_options)
+      def tracked
+        @tracked ||= adapter.tracked(model.column_names) - ['id']
       end
 
-      def version_class
-        model.reflect_on_association(model.versions_association_name).klass
+      def write(batch)
+        inserted = insert_and_fetch(batch)
+        changed = changed_columns(batch)
+        adapter.insert(inserted.map { |attributes| version_row(attributes, changed) })
+        inserted.pluck('id')
       end
 
-      def subtype_column?
-        versioned? && version_class.column_names.include?('item_subtype')
+      # Databases with RETURNING (Postgres, SQLite 3.35+, MariaDB 10.5+) hand the
+      # inserted rows back directly.
+      def insert_and_fetch(batch)
+        if model.connection.supports_insert_returning?
+          model.insert_all!(batch, returning: ['id', *tracked]).to_a
+        else
+          model.insert_all!(batch)
+          fetch_rows(generated_ids(batch))
+        end
       end
 
-      def default_subtype
-        model.name unless model == model.base_class
+      # MySQL only does not give us inserted rows, so we need to get the ids back.
+      def generated_ids(batch)
+        supplied = batch.map { |row| row[:id] || row['id'] }
+        return supplied if supplied.none?(&:nil?)
+        raise ArgumentError, 'rows must all supply an id or none of them' unless supplied.all?(&:nil?)
+
+        conn = model.connection
+        first = conn.select_value('SELECT LAST_INSERT_ID()').to_i
+        step = conn.select_value('SELECT @@auto_increment_increment').to_i
+        Array.new(batch.size) { |i| first + (i * step) }
       end
 
-      def serialize(object_changes)
-        return object_changes if !versioned? || json_column?
-
-        PaperTrail.serializer.dump(object_changes)
+      def fetch_rows(ids)
+        relation = model.unscoped.where(id: ids).select('id', *tracked)
+        by_id = model.connection.select_all(relation).to_a.index_by { |row| row['id'] }
+        ids.map { |id| by_id.fetch(id) }
       end
 
-      def json_column?
-        return @json_column if defined?(@json_column)
-
-        @json_column = %i[json jsonb].include?(version_class.type_for_attribute('object_changes').type)
+      def changed_columns(batch)
+        supplied = batch.flat_map { |row| row.keys.map(&:to_s) }.uniq
+        (supplied + %w[id created_at updated_at]) & ['id', *tracked]
       end
 
-      def ignored
-        @ignored ||= versioned? ? option_names(:ignore) + option_names(:skip) : []
+      def version_row(attributes, changed)
+        adapter.build_row(
+          id: attributes['id'],
+          event: 'create',
+          object_changes: object_changes_for(attributes.slice(*changed)),
+          extra: adapter.meta.any? ? adapter.meta_for(model.new(attributes)) : {},
+          subtype: attributes[model.inheritance_column]
+        )
       end
 
-      def only
-        @only ||= versioned? ? option_names(:only) : []
-      end
-
-      def option_names(key)
-        Array(model.paper_trail_options[key]).grep_v(Hash).map(&:to_s)
+      def object_changes_for(attributes)
+        attributes.compact.to_h { |name, value| [name, [nil, model.type_for_attribute(name).cast(value)]] }
       end
     end
   end
