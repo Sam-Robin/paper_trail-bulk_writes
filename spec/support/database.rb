@@ -9,7 +9,11 @@ module Database
       ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
     when 'postgres'
       ActiveRecord::Base.establish_connection(
-        ENV.fetch('DATABASE_URL', 'postgres://localhost/paper_trail_bulk_writes_test')
+        ENV['DATABASE_URL'] || 'postgres://postgres:postgres@localhost:5432/paper_trail_bulk_writes_test'
+      )
+    when 'mysql'
+      ActiveRecord::Base.establish_connection(
+        ENV['DATABASE_URL'] || 'mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test'
       )
     else
       raise ArgumentError, "unknown DB=#{ADAPTER}"

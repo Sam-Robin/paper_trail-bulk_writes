@@ -6,6 +6,7 @@ gemspec
 
 gem 'appraisal'
 gem 'irb'
+gem 'mysql2'
 gem 'pg'
 gem 'rake', '~> 13.0'
 gem 'rspec', '~> 3.0'
