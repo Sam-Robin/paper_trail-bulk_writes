@@ -39,21 +39,21 @@ module PaperTrail
         if model.connection.supports_insert_returning?
           model.insert_all!(batch, returning: ['id', *tracked]).to_a
         else
+          supplied = supplied_ids(batch)
           model.insert_all!(batch)
-          fetch_rows(generated_ids(batch))
+          fetch_rows(supplied || derive_ids(batch.size))
         end
       end
 
       # MySQL only - it doesn't give us the inserted rows back for free.
-      def generated_ids(batch)
-        supplied = batch.map { |row| row[:id] || row['id'] }
-        return cast_ids(supplied) if supplied.none?(&:nil?)
-        raise ArgumentError, 'rows must all supply an id or none of them' unless supplied.all?(&:nil?)
+      def supplied_ids(batch)
+        ids = batch.map { |row| row[:id] || row['id'] }
+        return nil if ids.all?(&:nil?)
+        raise ArgumentError, 'rows must all supply an id or none of them' unless ids.none?(&:nil?)
 
-        derive_ids(batch.size)
+        cast_ids(ids)
       end
 
-      # The rows are the caller's, so their ids need not be the type fetch_rows will key on.
       def cast_ids(ids)
         type = model.type_for_attribute('id')
         ids.map { |id| type.cast(id) }
