@@ -6,10 +6,16 @@ gemspec
 
 gem 'appraisal'
 gem 'irb'
-gem 'mysql2'
-gem 'pg'
 gem 'rake', '~> 13.0'
 gem 'rspec', '~> 3.0'
 gem 'rubocop', '~> 1.21'
 gem 'rubocop-rspec'
 gem 'sqlite3'
+
+group :postgres, optional: true do
+  gem 'pg'
+end
+
+group :mysql, optional: true do
+  gem 'mysql2'
+end

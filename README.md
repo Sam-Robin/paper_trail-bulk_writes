@@ -131,9 +131,20 @@ end
 ```sh
 bundle install
 bundle exec rspec                                   # SQLite in memory
-DB=postgres DATABASE_URL=postgres://localhost/paper_trail_bulk_writes_test bundle exec rspec
 bundle exec appraisal install && bundle exec appraisal rspec   # every Rails × PaperTrail combination
 bundle exec rubocop
+```
+
+`pg` and `mysql2` build against client libraries the SQLite suite does not need, so they sit in optional groups. Opt in per driver to run the suite against Postgres or MySQL:
+
+```sh
+bundle config set --local with postgres
+bundle install
+DB=postgres DATABASE_URL=postgres://localhost/paper_trail_bulk_writes_test bundle exec rspec
+
+bundle config set --local with mysql
+bundle install
+DB=mysql DATABASE_URL=mysql2://root:root@127.0.0.1:3306/paper_trail_bulk_writes_test bundle exec rspec
 ```
 
 ## License
