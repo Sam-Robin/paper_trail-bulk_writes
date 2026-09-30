@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed: on databases without `INSERT ... RETURNING`, `audited_insert_all` raised `KeyError` when the caller supplied ids typed differently to the column, such as strings out of a CSV or a JSON payload.
+
 ## 0.1.0
 
 - `PaperTrail::BulkWrites::Model` with `audited_update_all`, `audited_delete_all` and `audited_insert_all`.
