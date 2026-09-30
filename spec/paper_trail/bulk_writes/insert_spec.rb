@@ -117,4 +117,27 @@ RSpec.describe PaperTrail::BulkWrites::Insert, :versioning do
       expect(PaperTrail::Version.where(item_type: 'Widget').count).to eq(0)
     end
   end
+
+  describe 'a database without INSERT ... RETURNING' do
+    before { allow(Widget.connection).to receive(:supports_insert_returning?).and_return(false) }
+
+    it 'versions the row against an id the caller supplied as a string' do
+      id = described_class.call(model: Widget, rows: [row('a').merge(id: '4242')]).sole
+
+      expect(id).to eq(4242)
+      expect(versions_for(4242).sole.object_changes['name']).to eq([nil, 'a'])
+    end
+
+    it 'versions rows against ids the caller supplied as integers' do
+      ids = described_class.call(model: Widget, rows: [row('a').merge(id: 11), row('b').merge(id: 22)])
+
+      expect(ids).to eq([11, 22])
+      expect(PaperTrail::Version.where(item_type: 'Widget', item_id: ids, event: 'create').count).to eq(2)
+    end
+
+    it 'refuses a batch where only some rows supply an id' do
+      expect { described_class.call(model: Widget, rows: [row('a').merge(id: 11), row('b').merge(id: nil)]) }
+        .to raise_error(ArgumentError, 'rows must all supply an id or none of them')
+    end
+  end
 end
