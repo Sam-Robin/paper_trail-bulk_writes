@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Added: `audited_insert_all` takes `returning:`, a list of column names, and returns an `ActiveRecord::Result` of those columns in input order, like `insert_all`. Without it, it still returns the ids. Works on MySQL too, by reading the rows back.
+
+## 0.2.0
+
 - Fixed: on databases without `INSERT ... RETURNING`, `audited_insert_all` raised `KeyError` when the caller supplied ids typed differently to the column, such as strings out of a CSV or a JSON payload.
 
 ## 0.1.0

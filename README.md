@@ -60,6 +60,9 @@ Shift.where(id: ids).audited_delete_all
 
 # Returns the new ids, in input order. Rows are inserted with insert_all!.
 Shift.audited_insert_all([{ name: 'a', status: 'draft' }, { name: 'b', status: 'draft' }])
+
+# Pass returning: for other columns; returns an ActiveRecord::Result, like insert_all.
+Shift.audited_insert_all(rows, returning: %w[id status])
 ```
 
 Batches default to 1,000 rows:
