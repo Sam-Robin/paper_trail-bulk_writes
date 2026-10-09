@@ -5,39 +5,51 @@ module PaperTrail
     class Insert
       include Versioned
 
-      def initialize(model:, rows:, whodunnit: nil, batch_size: nil)
+      def initialize(model:, rows:, whodunnit: nil, batch_size: nil, returning: nil)
         @model = model
         @rows = rows
         @whodunnit = whodunnit
         @batch_size = batch_size || default_batch_size
+        @returning = returning && Array(returning).map(&:to_s)
       end
 
       def call
-        return [] if rows.empty?
+        inserted = insert_all
+        return inserted.pluck('id') unless returning
 
-        model.transaction { rows.each_slice(batch_size).flat_map { |batch| write(batch) } }
+        ActiveRecord::Result.new(returning, inserted.map { |attributes| attributes.values_at(*returning) })
       end
 
       private
 
-      attr_reader :model, :rows, :whodunnit, :batch_size
+      attr_reader :model, :rows, :whodunnit, :batch_size, :returning
 
       def tracked
         @tracked ||= adapter.tracked(model.column_names) - ['id']
+      end
+
+      def fetched
+        @fetched ||= ['id', *tracked] | returning.to_a
+      end
+
+      def insert_all
+        return [] if rows.empty?
+
+        model.transaction { rows.each_slice(batch_size).flat_map { |batch| write(batch) } }
       end
 
       def write(batch)
         inserted = insert_and_fetch(batch)
         changed = changed_columns(batch)
         adapter.insert(inserted.map { |attributes| version_row(attributes, changed) })
-        inserted.pluck('id')
+        inserted
       end
 
       # Databases with RETURNING (Postgres, SQLite 3.35+, MariaDB 10.5+) hand the
       # inserted rows back.
       def insert_and_fetch(batch)
         if model.connection.supports_insert_returning?
-          model.insert_all!(batch, returning: ['id', *tracked]).to_a
+          model.insert_all!(batch, returning: fetched).to_a
         else
           supplied = supplied_ids(batch)
           model.insert_all!(batch)
@@ -70,7 +82,7 @@ module PaperTrail
       end
 
       def fetch_rows(ids)
-        relation = model.unscoped.where(id: ids).select('id', *tracked)
+        relation = model.unscoped.where(id: ids).select(*fetched)
         by_id = model.connection.select_all(relation).to_a.index_by { |row| row['id'] }
         ids.map { |id| by_id.fetch(id) }
       end

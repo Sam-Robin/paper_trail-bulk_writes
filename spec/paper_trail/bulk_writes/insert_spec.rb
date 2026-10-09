@@ -118,6 +118,38 @@ RSpec.describe PaperTrail::BulkWrites::Insert, :versioning do
     end
   end
 
+  describe 'returning:' do
+    it 'returns the requested columns for every row, in input order' do
+      result = described_class.call(model: Widget, rows: [row('a'), row('b')], returning: %i[id name])
+
+      expect(result.columns).to eq(%w[id name])
+      expect(result.rows.map(&:last)).to eq(%w[a b])
+      expect(result.rows.map(&:first).map { |id| Widget.find(id).name }).to eq(%w[a b])
+    end
+
+    it 'returns columns paper_trail does not track, without adding them to the version' do
+      result = Ticket.audited_insert_all([{ title: 't', priority: 'high' }], returning: %w[id title])
+
+      expect(result.to_a.sole['title']).to eq('t')
+      version = PaperTrail::Version.find_by(item_type: 'Ticket', item_id: result.to_a.sole['id'])
+      expect(version.object_changes.keys).not_to include('title')
+    end
+
+    it 'merges the rows from every batch' do
+      result = described_class.call(model: Widget, rows: [row('a'), row('b'), row('c')], batch_size: 2,
+                                    returning: %w[name])
+
+      expect(result.rows.flatten).to eq(%w[a b c])
+    end
+
+    it 'returns an empty result with the requested columns for no rows' do
+      result = described_class.call(model: Widget, rows: [], returning: %w[id name])
+
+      expect(result.columns).to eq(%w[id name])
+      expect(result.rows).to eq([])
+    end
+  end
+
   describe 'a database without INSERT ... RETURNING' do
     before { allow(Widget.connection).to receive(:supports_insert_returning?).and_return(false) }
 
@@ -138,6 +170,13 @@ RSpec.describe PaperTrail::BulkWrites::Insert, :versioning do
     it 'refuses a batch where only some rows supply an id' do
       expect { described_class.call(model: Widget, rows: [row('a').merge(id: 11), row('b').merge(id: nil)]) }
         .to raise_error(ArgumentError, 'rows must all supply an id or none of them')
+    end
+
+    it 'returns the requested columns by reading the rows back' do
+      result = described_class.call(model: Widget, rows: [row('a').merge(id: 31), row('b').merge(id: 32)],
+                                    returning: %w[id name])
+
+      expect(result.rows).to eq([[31, 'a'], [32, 'b']])
     end
   end
 end

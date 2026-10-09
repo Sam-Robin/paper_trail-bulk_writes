@@ -8,8 +8,8 @@ module PaperTrail
       end
 
       module ClassMethods
-        def audited_insert_all(rows, whodunnit: PaperTrail.request.whodunnit)
-          Insert.call(model: self, rows: rows, whodunnit: whodunnit)
+        def audited_insert_all(rows, whodunnit: PaperTrail.request.whodunnit, returning: nil)
+          Insert.call(model: self, rows: rows, whodunnit: whodunnit, returning: returning)
         end
 
         def audited_update_all(attributes:, whodunnit: PaperTrail.request.whodunnit, touch: true)
